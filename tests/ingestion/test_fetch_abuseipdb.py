@@ -1,7 +1,7 @@
 import aiohttp
 import pytest
 from unittest.mock import AsyncMock, patch
-from app.ingestion.fetch_abuseipdb import fetch_aipdb_blacklist
+from app.ingestion.abuseipdb_client import fetch_aipdb_blacklist
 
 @pytest.mark.asyncio
 async def test_fetch_blacklist():
