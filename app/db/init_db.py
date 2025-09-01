@@ -1,6 +1,5 @@
 import asyncio
 from app.db import engine, Base
-from app.models.ioc import IOC
 
 
 async def init_db():
