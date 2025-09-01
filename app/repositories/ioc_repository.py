@@ -1,6 +1,8 @@
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.ioc import IOC
+from datetime import datetime
 
 
 class IOCRepository:
@@ -32,3 +34,19 @@ class IOCRepository:
 
     async def rollback(self):
         await self.session.rollback()
+
+    async def get_all(self) -> list[IOC]:
+        result = await self.session.execute(select(IOC))
+        return result.scalars().all()
+
+    async def get_by_value(self, value: str) -> IOC | None:
+        result = await self.session.execute(
+            select(IOC).where(IOC.value == value)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_date_range(self, start: datetime, end: datetime) -> list[IOC]:
+        result = await self.session.execute(
+            select(IOC).where(IOC.last_seen.between(start, end))
+        )
+        return result.scalars().all()
