@@ -50,3 +50,6 @@ coverage.xml
 # PyCharm
 *.iml
 out/
+
+# Temporary data
+data/
