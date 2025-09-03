@@ -35,18 +35,21 @@ class IOCRepository:
     async def rollback(self):
         await self.session.rollback()
 
-    async def get_all(self) -> list[IOC]:
-        result = await self.session.execute(select(IOC))
+    async def get_iocs(self, page: int, limit: int) -> list[IOC]:
+        stmt = select(IOC).offset((page - 1) * limit).limit(limit)
+        result = await self.session.execute(stmt)
         return result.scalars().all()
 
-    async def get_by_value(self, value: str) -> IOC | None:
-        result = await self.session.execute(
-            select(IOC).where(IOC.value == value)
-        )
-        return result.scalar_one_or_none()
-
-    async def get_by_date_range(self, start: datetime, end: datetime) -> list[IOC]:
-        result = await self.session.execute(
-            select(IOC).where(IOC.last_seen.between(start, end))
-        )
+    async def get_iocs_by_date_range(self, start_date: datetime, end_date: datetime, page: int,
+                                     limit: int) -> list[IOC]:
+        stmt = (
+            select(IOC).where(IOC.last_seen >= start_date, IOC.last_seen <= end_date).offset((page - 1) * limit).limit(
+                limit))
+        result = await self.session.execute(stmt)
         return result.scalars().all()
+
+    # async def get_by_value(self, value: str) -> IOC | None:
+    #     result = await self.session.execute(
+    #         select(IOC).where(IOC.value == value)
+    #     )
+    #     return result.scalar_one_or_none()
