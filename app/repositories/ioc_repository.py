@@ -10,24 +10,32 @@ class IOCRepository:
         self.session = session
 
     async def upsert_ioc(self, ioc_data: dict) -> bool:
-        stmt = (
-            insert(IOC)
-            .values(**ioc_data)
-            .on_conflict_do_nothing(index_elements=["value"])
-            .returning(IOC.value)
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none() is not None
+        try:
+            stmt = (
+                insert(IOC)
+                .values(**ioc_data)
+                .on_conflict_do_nothing(index_elements=["value"])
+                .returning(IOC.value)
+            )
+            result = await self.session.execute(stmt)
+            return result.scalar_one_or_none() is not None
+        except Exception:
+            await self.session.rollback()
+            raise
 
     async def bulk_upsert_iocs(self, iocs_data: list[dict]) -> None:
         if not iocs_data:
             return
-        stmt = (
-            insert(IOC)
-            .values(iocs_data)
-            .on_conflict_do_nothing(index_elements=["value"])
-        )
-        await self.session.execute(stmt)
+        try:
+            stmt = (
+                insert(IOC)
+                .values(iocs_data)
+                .on_conflict_do_nothing(index_elements=["value"])
+            )
+            await self.session.execute(stmt)
+        except Exception:
+            await self.session.rollback()
+            raise
 
     async def commit(self):
         await self.session.commit()
@@ -47,9 +55,3 @@ class IOCRepository:
                 limit))
         result = await self.session.execute(stmt)
         return result.scalars().all()
-
-    # async def get_by_value(self, value: str) -> IOC | None:
-    #     result = await self.session.execute(
-    #         select(IOC).where(IOC.value == value)
-    #     )
-    #     return result.scalar_one_or_none()

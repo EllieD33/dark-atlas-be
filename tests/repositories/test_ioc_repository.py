@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import select
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from app.repositories.ioc_repository import IOCRepository
 from app.models.ioc import IOC
 from app.services.abuseipdb_service import transform_abuseipdb_entry
@@ -46,3 +46,47 @@ async def test_upsert_duplicate_does_not_raise(db_session):
 
     assert len(rows) == 1
     assert rows[0].value == raw_entry['ipAddress']
+
+@pytest.mark.asyncio
+async def test_get_iocs(db_session):
+    repo = IOCRepository(db_session)
+
+    iocs = [
+        IOC(type="ip", value=f"192.168.0.{i}", source="test")
+        for i in range(25)
+    ]
+    db_session.add_all(iocs)
+    await db_session.commit()
+
+    result = await repo.get_iocs(2, 10)
+
+    assert len(result) == 10
+    assert isinstance(result[0], IOC)
+    assert result[0].value == "192.168.0.10"
+
+
+@pytest.mark.asyncio
+async def test_get_iocs_by_date_range(db_session):
+    repo = IOCRepository(db_session)
+
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    iocs = [
+        IOC(
+            type="ip",
+            value=f"10.0.0.{i}",
+            source="test",
+            last_seen=base_date + timedelta(days=i)
+        )
+        for i in range(25)
+    ]
+
+    db_session.add_all(iocs)
+    await db_session.commit()
+
+    start_date = datetime(2024, 1, 5, tzinfo=timezone.utc)
+    end_date = datetime(2024, 1, 10, tzinfo=timezone.utc)
+
+    results = await repo.get_iocs_by_date_range(start_date, end_date, page=1, limit=100)
+
+    assert all(start_date <= ioc.last_seen <= end_date for ioc in results)
+    assert len(results) == 6

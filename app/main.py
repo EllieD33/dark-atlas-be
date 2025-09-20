@@ -1,10 +1,22 @@
 from fastapi import FastAPI
 from app.api.v1 import iocs
 
-app = FastAPI(title="DarkAtlas API")
+app = FastAPI(
+    title="DarkAtlas Threat API",
+    version="0.1.0",
+    description="API for ingesting and querying threat intelligence indicators (IOCs)."
+)
 
-app.include_router(iocs.router, prefix="/iocs", tags=["iocs"])
+app.include_router(iocs.router, prefix="/iocs", tags=["IOCs"])
 
-@app.get("/")
-def root():
-    return {"message": "DarkAtlas API is running"}
+@app.get("/", tags=["root"])
+async def root():
+    """
+    API root endpoint.
+    Provides metadata and links to documentation.
+    """
+    return {
+        "service": "DarkAtlas Threat API",
+        "version": "0.1.0",
+        "docs_url": "/docs"
+    }

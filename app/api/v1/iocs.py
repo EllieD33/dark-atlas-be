@@ -9,25 +9,22 @@ from app.services.ioc_service import list_iocs, list_iocs_in_range
 
 router = APIRouter()
 
-
-@router.get("/", tags=["root"])
-async def root():
-    return {
-        "service": "DarkAtlas Threat API",
-        "version": "0.1.0",
-        "docs_url": "/docs"
-    }
-
-
-@router.get("/iocs", response_model=list[IOCResponse])
-async def list_iocs(session: AsyncSession = Depends(get_session), page: int = 1, limit: int = 1):
+@router.get("", response_model=list[IOCResponse])
+async def list_iocs_endpoint(
+    session: AsyncSession = Depends(get_session),
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=1000)
+):
+    """List all IOCs with pagination."""
     return await list_iocs(session, page, limit)
 
-
-@router.get("/iocs/range", response_model=list[IOCResponse])
-async def list_iocs_in_range(session: AsyncSession = Depends(get_session),
-                             start_date: Optional[datetime] = Query(None),
-                             end_date: Optional[datetime] = Query(None),
-                             page: int = 1,
-                             limit: int = 100):
+@router.get("/range", response_model=list[IOCResponse])
+async def list_iocs_in_range_endpoint(
+    session: AsyncSession = Depends(get_session),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=1000)
+):
+    """List IOCs filtered by date range with pagination."""
     return await list_iocs_in_range(session, start_date, end_date, page, limit)
