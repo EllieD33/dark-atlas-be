@@ -5,26 +5,24 @@ backend_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_dir))
 
 import asyncio
-import os
 import json
 from aiohttp import ClientSession
 from sqlalchemy.exc import SQLAlchemyError
 from app.db import AsyncSessionLocal
-from app.ingestion.abuseipdb_client import fetch_aipdb_blacklist
 from app.logger import get_logger
+from app.ingestion.abuseipdb_client import fetch_aipdb_blacklist
 from app.services.ioc_application_service import store_abuseipdb_data
 
 logger = get_logger(__name__)
 
+DATA_CACHE_FILE = (backend_dir / "data" / "abuseipdb_blacklist.json").resolve()
 
 async def fetch_and_cache_abuseipdb(http_session: ClientSession) -> dict:
     """Fetch the full AbuseIPDB blacklist and save to local JSON cache."""
-    data_cache_file = "data/abuseipdb_blacklist.json"
-    os.makedirs(os.path.dirname(data_cache_file), exist_ok=True)
-
-    if os.path.exists(data_cache_file):
+    DATA_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if DATA_CACHE_FILE.exists():
         logger.info("Cache exists, skipping API fetch")
-        with open(data_cache_file) as f:
+        with DATA_CACHE_FILE.open("r") as f:
             return json.load(f)
 
     data = await fetch_aipdb_blacklist(http_session)
@@ -33,7 +31,7 @@ async def fetch_and_cache_abuseipdb(http_session: ClientSession) -> dict:
         logger.warning("No data fetched from AbuseIPDB.")
         return {}
 
-    with open(data_cache_file, "w") as f:
+    with DATA_CACHE_FILE.open("w") as f:
         json.dump(data, f, indent=2)
 
     logger.info(f"Fetched and cached {len(data['data'])} IOCs from AbuseIPDB.")
@@ -42,12 +40,11 @@ async def fetch_and_cache_abuseipdb(http_session: ClientSession) -> dict:
 
 async def seed_db_from_cache():
     """Load cached AbuseIPDB data and insert into the DB (idempotent)."""
-    data_cache_file = "data/abuseipdb_blacklist.json"
-    if not os.path.exists(data_cache_file):
+    if not DATA_CACHE_FILE.exists():
         logger.error("Cache file not found. Run fetch_and_cache_abuseipdb first.")
         return
 
-    with open(data_cache_file, "r") as f:
+    with open(DATA_CACHE_FILE, "r") as f:
         cached_data = json.load(f)
 
     async with AsyncSessionLocal() as db_session:
