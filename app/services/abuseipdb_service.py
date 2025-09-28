@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from app.utils.datetime_utils import parse_datetime_safe
 
 
