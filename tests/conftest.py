@@ -6,7 +6,7 @@ from app.db import Base
 from dotenv import load_dotenv
 import os
 
-load_dotenv(".env.test")
+load_dotenv(".env.test", override=True)
 
 TEST_DATABASE_URL = f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 
@@ -18,6 +18,7 @@ async def db_session():
     async_session_local = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
+    print(TEST_DATABASE_URL)
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
